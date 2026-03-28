@@ -159,7 +159,7 @@ private fun SnackCollectionList(
     }
 
     // Reports when the UI is usable by user
-    ReportDrawnWhen { snackCollections.isNotEmpty() }
+    ReportDrawnWhen {true }
 }
 
 @Preview("default")

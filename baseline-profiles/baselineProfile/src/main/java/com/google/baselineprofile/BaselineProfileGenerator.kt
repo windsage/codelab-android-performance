@@ -1,6 +1,5 @@
 package com.google.baselineprofile
 
-import android.util.Log
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -75,53 +74,29 @@ class BaselineProfileGenerator {
             // https://d.android.com/training/testing/other-components/ui-automator
         }
     }
-    private val TAG = "Macrobenchmark"
 
     fun MacrobenchmarkScope.waitForAsyncContent() {
-        // 1. 先等待父容器出现，增加到 10 秒以适配物理机加载
-        val snackListFound = device.wait(Until.hasObject(By.res(packageName, "snack_list")), 10_000)
-
-        if (snackListFound) {
-            val contentList = device.findObject(By.res(packageName, "snack_list"))
-            // 2. 使用空安全操作符，并等待子元素渲染
-            val itemFound = contentList?.wait(Until.hasObject(By.res(packageName, "snack_collection")), 5_000)
-            if (itemFound != true) {
-                Log.w(TAG, "Content list found but snack_collection didn't appear.")
-            }
-        } else {
-            Log.e(TAG, "Could not find snack_list within 10 seconds.")
-        }
+        device.wait(Until.hasObject(By.res("snack_list")), 5_000)
+        val contentList = device.findObject(By.res("snack_list"))
+        // Wait until a snack collection item within the list is rendered.
+        contentList.wait(Until.hasObject(By.res("snack_collection")), 5_000)
     }
 
     fun MacrobenchmarkScope.scrollSnackListJourney() {
-        // 确保对象存在后再操作
-        val snackList = device.findObject(By.res(packageName, "snack_list"))
-
-        if (snackList != null) {
-            // 设置手势边距，防止触发系统“返回”手势
-            snackList.setGestureMargin(device.displayWidth / 5)
-            // 使用 fling 模拟快速滑动
-            snackList.fling(Direction.DOWN)
-            device.waitForIdle()
-        } else {
-            Log.e(TAG, "Cannot scroll: snack_list is null.")
-        }
+        val snackList = device.findObject(By.res("snack_list"))
+        // Set gesture margin to avoid triggering gesture navigation.
+        snackList.setGestureMargin(device.displayWidth / 5)
+        snackList.fling(Direction.DOWN)
+        device.waitForIdle()
     }
 
     fun MacrobenchmarkScope.goToSnackDetailJourney() {
-        val snackList = device.findObject(By.res(packageName, "snack_list"))
-
-        // 获取子元素列表
-        val snacks = snackList?.findObjects(By.res(packageName, "snack_item"))
-
-        if (!snacks.isNullOrEmpty()) {
-            val index = (iteration ?: 0) % snacks.size
-            // 执行点击
-            snacks[index].click()
-            // 等待列表消失，确认进入了详情页
-            device.wait(Until.gone(By.res(packageName, "snack_list")), 5_000)
-        } else {
-            Log.e(TAG, "No snack_items found to click.")
-        }
+        val snackList = device.findObject(By.res("snack_list"))
+        val snacks = snackList.findObjects(By.res("snack_item"))
+        // Select snack from the list based on running iteration.
+        val index = (iteration ?: 0) % snacks.size
+        snacks[index].click()
+        // Wait until the screen is gone = the detail is shown.
+        device.wait(Until.gone(By.res("snack_list")), 5_000)
     }
 }
